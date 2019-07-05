@@ -1,3 +1,4 @@
+// @ts-check
 import React, { Component } from 'react';
 import Snake from './Snake';
 import Food from './Food';
@@ -27,38 +28,66 @@ const defaultState = {
   foodDot: getRandomCoordinates(),
 };
 
+const db = firebase.database();
+
 class App extends Component {
   state = defaultState;
 
   componentDidMount() {
     setInterval(this.moveSnake, this.state.speed);
     document.onkeydown = this.onKeyDown;
+    this.initDb();
   }
+
+  initDb = () => {
+    const lastActive = db.ref('last_active');
+    lastActive.once('value', snapshot => {
+      const now = new Date().getTime();
+      if (!snapshot.val() || now - snapshot.val() > 1000 * 30) {
+        lastActive.set(now);
+        db.ref('direction').remove();
+      }
+      this.initPlayer();
+    });
+  };
+
+  initPlayer = () => {
+    var playerId = 0;
+    db.ref('direction').once('value', snapshot => {
+      playerId = snapshot.val() ? snapshot.val().length : 0;
+      db.ref(`direction/${playerId}`).set('RIGHT');
+      console.log('playerId: ', playerId);
+      this.setState({ playerId });
+    });
+
+    db.ref('direction').on('value', snapshot => {
+      console.log('player data change: ', snapshot.val());
+    });
+  };
+
+  onDirectionChange = direction => {
+    this.setState({ direction });
+    db.ref(`direction/${this.state.playerId}`).set(direction);
+  };
 
   onKeyDown = e => {
     e = e || window.event;
-    var direction = null;
     switch (e.keyCode) {
       case 38:
-        direction = 'UP';
+        this.onDirectionChange('UP');
         break;
       case 40:
-        direction = 'DOWN';
+        this.onDirectionChange('DOWN');
         break;
       case 37:
-        direction = 'LEFT';
+        this.onDirectionChange('LEFT');
         break;
       case 39:
-        direction = 'RIGHT';
+        this.onDirectionChange('RIGHT');
         break;
       case 32:
         this.togglePause();
         break;
-    }
-    if (direction != null) {
-      this.setState({ direction });
-      const directionRef = firebase.database().ref('direction');
-      directionRef.set(direction);
     }
   };
 
