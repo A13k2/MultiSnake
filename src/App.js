@@ -1,7 +1,9 @@
+// @ts-check
 import React, { Component } from 'react';
 import Snake from './Snake';
 import Food from './Food';
 import './App.css';
+import { logicalExpression } from "@babel/types";
 
 
 const GAMESTATE = {
@@ -9,7 +11,7 @@ const GAMESTATE = {
   RUNNING: 1,
   MENU: 2,
   GAMEOVER: 3,
-}
+};
 
 const getRandomCoordinates = () => {
   let min = 1;
@@ -21,15 +23,33 @@ const getRandomCoordinates = () => {
 
 const defaultState = {
   gamestate: GAMESTATE.PAUSED,
+  speed: 100,
+  snake: {
     direction: 'RIGHT',
-    speed: 100,
-    snakeDots: [
-      [0, 0],
-      [2, 0],
+    id: 0,
+    alive: 1,
+    dots: [
       [2, 2],
-      [2, 4],
-    ],
-    foodDot: getRandomCoordinates(),
+      [4, 2]
+    ]
+  },
+  otherSnakes: [
+    {
+      id: 1,
+      dots: [
+        [92, 2],
+        [94, 2]
+      ]
+    },
+    {
+      id: 2,
+      dots: [
+        [90, 90],
+        [92, 90]
+      ]
+    },
+  ],
+  foodDot: getRandomCoordinates(),
 }
 
 class App extends Component {
@@ -42,46 +62,65 @@ class App extends Component {
 
   onKeyDown = (e) => {
     e = e || window.event;
+    console.log(e.keyCode);
+    const { snake } = this.state;
+    let { direction } = snake;
     switch (e.keyCode) {
       case 38:
-        this.setState({ direction: 'UP' });
+        direction = 'UP';
         break;
       case 40:
-        this.setState({ direction: 'DOWN' });
+        direction = 'DOWN';
         break;
       case 37:
-        this.setState({ direction: 'LEFT' });
+        direction = 'LEFT';
         break;
       case 39:
-        this.setState({ direction: 'RIGHT' });
+        direction = 'RIGHT';
         break;
       case 32:
         this.togglePause();
         break;
     }
+    this.setState({
+      snake: {
+        ...snake,
+        direction,
+      }
+    })
   };
 
   reset = () => {
-    this.setState(defaultState);
+    console.log('Resetting');
+    this.setState({
+      gamestate: GAMESTATE.GAMEOVER,
+    });
   };
 
   togglePause = () => {
     let { gamestate } = this.state;
-    if (gamestate === GAMESTATE.RUNNING)  {
+    if (gamestate === GAMESTATE.RUNNING) {
       gamestate = GAMESTATE.PAUSED;
+    } else if (gamestate === GAMESTATE.GAMEOVER) {
+      this.setState(defaultState);
+      return;
     } else gamestate = GAMESTATE.RUNNING;
-    this.setState({gamestate});
+    this.setState({ gamestate });
   };
 
   moveSnake = () => {
-    let { foodDot, gamestate } = this.state;
+    let { foodDot, gamestate, snake } = this.state;
 
     if (gamestate === GAMESTATE.PAUSED) return;
 
-    let dots = [...this.state.snakeDots];
+    console.log(`Moving snake with id: ${snake.id}`);
+    // console.log(this.state);
+
+    let dots = [...snake.dots];
+    console.log(dots);
     let head = dots[dots.length - 1];
 
-    switch (this.state.direction) {
+    switch (snake.direction) {
       case "RIGHT":
         head = [head[0] + 2, head[1]];
         break;
@@ -96,7 +135,9 @@ class App extends Component {
         break;
     }
     if (this.checkFood(head, foodDot)) {
-      foodDot = getRandomCoordinates();
+      this.setState({
+        foodDot: getRandomCoordinates(),
+      })
     } else {
       dots.shift();
     }
@@ -110,14 +151,16 @@ class App extends Component {
       return;
     }
     this.setState({
-      snakeDots: dots,
-      foodDot: foodDot,
+      snake: {
+        ...snake,
+        dots,
+      }
     })
   };
 
   checkGay = (dots) => {
     for (let i = 0; i < dots.length; i++) {
-      for (let j = i+1; j < dots.length; j++) {
+      for (let j = i + 1; j < dots.length; j++) {
         if (dots[i][0] === dots[j][0] && dots[i][1] === dots[j][1]) {
           console.log('gay');
           return true;
@@ -134,7 +177,7 @@ class App extends Component {
   };
 
   checkBorders = (head) => {
-    if (head[0] === 0 || head[0] === 100 || head[1] === 0 || head[1] === 100) {
+    if (head[0] === -2 || head[0] === 100 || head[1] === -2 || head[1] === 100) {
       return true;
     }
   };
@@ -142,7 +185,15 @@ class App extends Component {
   render() {
     return (
       <div className="game-area">
-        <Snake snakeDots={this.state.snakeDots} />
+        <Snake key={this.state.snake.id} snakeDots={this.state.snake.dots} />
+        {
+          this.state.otherSnakes.map((snake) => {
+            // console.log(snake.dots);
+            return (
+              <Snake key={snake.id} snakeDots={snake.dots} />
+            )
+          })
+        }
         <Food dot={this.state.foodDot} />
       </div>
     )
