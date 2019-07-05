@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import Snake from './Snake';
 import Food from './Food';
 import './App.css';
-import { logicalExpression } from "@babel/types";
+import firebase from './firebase.js';
 
 
 const GAMESTATE = {
@@ -27,30 +27,18 @@ const defaultState = {
   snake: {
     direction: 'RIGHT',
     id: 0,
-    alive: 1,
+    alive: true,
     dots: [
       [2, 2],
       [4, 2]
     ]
   },
-  otherSnakes: [
-    {
-      id: 1,
-      dots: [
-        [92, 2],
-        [94, 2]
-      ]
-    },
-    {
-      id: 2,
-      dots: [
-        [90, 90],
-        [92, 90]
-      ]
-    },
-  ],
-  foodDot: getRandomCoordinates(),
-}
+  otherSnakes: [],
+  foodDot: [],
+
+};
+
+const db = firebase.database();
 
 class App extends Component {
   state = defaultState;
@@ -58,36 +46,88 @@ class App extends Component {
   componentDidMount() {
     setInterval(this.moveSnake, this.state.speed);
     document.onkeydown = this.onKeyDown;
+    this.initDb();
   }
 
-  onKeyDown = (e) => {
-    e = e || window.event;
-    console.log(e.keyCode);
+  initDb = () => {
+    const lastActive = db.ref('last_active');
+    lastActive.once('value', snapshot => {
+      const now = new Date().getTime();
+      if (!snapshot.val() || now - snapshot.val() > 1000 * 30) {
+        lastActive.set(now);
+        db.ref('snakeStates').remove();
+      }
+      this.initPlayer();
+    });
+  };
+
+  initPlayer = () => {
     const { snake } = this.state;
-    let { direction } = snake;
+    var id = 0;
+    db.ref('snakeStates').once('value', snapshot => {
+      id = snapshot.val() ? snapshot.val().length : 0;
+      db.ref(`snakeStates/${id}`).set({
+        snake: {
+          ...snake,
+          id
+        },
+      });
+      console.log('playerId: ', id);
+      this.setState({
+        snake: {
+          ...snake,
+          id
+        },
+      });
+    });
+    db.ref('snakeStates').on('value', snapshot => {
+      let snakeData = snapshot.val();
+      this.setState({ otherSnakes: snakeData });
+    });
+    db.ref('gamestate').on('value', snapshot => {
+      this.setState({ gamestate: snapshot.val() });
+    });
+    db.ref('foodDot').on('value', snapshot => {
+      if (snapshot.exists()) {
+        this.setState({ foodDot: snapshot.val() });
+      } else {
+        let foodDot = getRandomCoordinates()
+        this.setState({ foodDot: foodDot });
+        db.ref('foodDot').set(foodDot);
+      }
+    });
+  };
+
+
+  onDirectionChange = direction => {
+    const { snake } = this.state;
+    this.setState({
+      snake: {
+        ...snake,
+        direction
+      }
+    });
+  };
+
+  onKeyDown = e => {
+    e = e || window.event;
     switch (e.keyCode) {
       case 38:
-        direction = 'UP';
+        this.onDirectionChange('UP');
         break;
       case 40:
-        direction = 'DOWN';
+        this.onDirectionChange('DOWN');
         break;
       case 37:
-        direction = 'LEFT';
+        this.onDirectionChange('LEFT');
         break;
       case 39:
-        direction = 'RIGHT';
+        this.onDirectionChange('RIGHT');
         break;
       case 32:
         this.togglePause();
         break;
     }
-    this.setState({
-      snake: {
-        ...snake,
-        direction,
-      }
-    })
   };
 
   reset = () => {
@@ -106,15 +146,15 @@ class App extends Component {
       return;
     } else gamestate = GAMESTATE.RUNNING;
     this.setState({ gamestate });
+    db.ref(`gamestate`).set(gamestate);
   };
 
   moveSnake = () => {
-    let { foodDot, gamestate, snake } = this.state;
+    let { foodDot, gamestate, snake, alive } = this.state;
 
     if (gamestate === GAMESTATE.PAUSED) return;
 
-    console.log(`Moving snake with id: ${snake.id}`);
-    // console.log(this.state);
+    // console.log(`Moving snake with id: ${snake.id}`);
 
     let dots = [...snake.dots];
     console.log(dots);
@@ -135,27 +175,45 @@ class App extends Component {
         break;
     }
     if (this.checkFood(head, foodDot)) {
+      foodDot = getRandomCoordinates();
       this.setState({
-        foodDot: getRandomCoordinates(),
-      })
+        foodDot,
+      });
+      db.ref('foodDot').set(foodDot);
     } else {
       dots.shift();
     }
-    if (this.checkBorders(head)) {
-      this.reset();
-      return;
-    }
     dots.push(head);
-    if (this.checkGay(dots)) {
-      this.reset();
+
+    if (this.checkGay(dots) || this.checkBorders(head)) {
+      alive = false;
+      this.setState({
+        snake: {
+          ...snake,
+          alive,
+        }
+      });
+      db.ref(`snakeStates/${this.state.snake.id}`).set({
+        snake: {
+          ...snake,
+          alive,
+        }
+      });
       return;
+    } else {
+      this.setState({
+        snake: {
+          ...snake,
+          dots,
+        }
+      });
+      db.ref(`snakeStates/${this.state.snake.id}`).set({
+        snake: {
+          ...snake,
+          dots,
+        }
+      });
     }
-    this.setState({
-      snake: {
-        ...snake,
-        dots,
-      }
-    })
   };
 
   checkGay = (dots) => {
@@ -188,10 +246,12 @@ class App extends Component {
         <Snake key={this.state.snake.id} snakeDots={this.state.snake.dots} />
         {
           this.state.otherSnakes.map((snake) => {
-            // console.log(snake.dots);
-            return (
-              <Snake key={snake.id} snakeDots={snake.dots} />
-            )
+            console.log(snake);
+            if (snake.snake.id !== this.state.snake.id) {
+              return (
+                <Snake key={snake.snake.id} snakeDots={snake.snake.dots} />
+              )
+            }
           })
         }
         <Food dot={this.state.foodDot} />
