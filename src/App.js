@@ -130,13 +130,6 @@ class App extends Component {
     }
   };
 
-  reset = () => {
-    console.log('Resetting');
-    this.setState({
-      gamestate: GAMESTATE.GAMEOVER,
-    });
-  };
-
   togglePause = () => {
     let { gamestate } = this.state;
     if (gamestate === GAMESTATE.RUNNING) {
@@ -150,11 +143,11 @@ class App extends Component {
   };
 
   moveSnake = () => {
-    let { foodDot, gamestate, snake, alive } = this.state;
+    let { foodDot, gamestate, snake } = this.state;
+    let { alive } = snake;
 
     if (gamestate === GAMESTATE.PAUSED) return;
-
-    // console.log(`Moving snake with id: ${snake.id}`);
+    if (!alive) return;
 
     let dots = [...snake.dots];
     console.log(dots);
@@ -185,7 +178,7 @@ class App extends Component {
     }
     dots.push(head);
 
-    if (this.checkGay(dots) || this.checkBorders(head)) {
+    if (this.checkSelfGay(dots) || this.checkBorders(head) || this.checkOthersGay(head)) {
       alive = false;
       this.setState({
         snake: {
@@ -216,7 +209,7 @@ class App extends Component {
     }
   };
 
-  checkGay = (dots) => {
+  checkSelfGay = (dots) => {
     for (let i = 0; i < dots.length; i++) {
       for (let j = i + 1; j < dots.length; j++) {
         if (dots[i][0] === dots[j][0] && dots[i][1] === dots[j][1]) {
@@ -226,6 +219,19 @@ class App extends Component {
       }
     }
     return false;
+  };
+
+  checkOthersGay = (head) => {
+    const { otherSnakes } = this.state;
+    let gay = false;
+    otherSnakes.forEach((other) => {
+      other.snake.dots.forEach((dot) => {
+        if (head[0] === dot[0] && head[1] === dot[1]) {
+          gay = true;
+        }
+      })
+    });
+    return gay;
   };
 
   checkFood = (head, foodDot) => {
