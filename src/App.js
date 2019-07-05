@@ -5,6 +5,12 @@ import Food from './Food';
 import './App.css';
 import firebase from './firebase.js';
 
+const DIRECTIONS = {
+  LEFT: 0,
+  RIGHT: 1,
+  UP: 2,
+  DOWN: 3,
+};
 
 const GAMESTATE = {
   PAUSED: 0,
@@ -15,19 +21,19 @@ const GAMESTATE = {
 
 const STARTING_POSITIONS = {
   0: {
-    direction: 'RIGHT',
+    direction: DIRECTIONS.RIGHT,
     dots: [[2, 2], [4, 2]]
   },
   1: {
-    direction: 'LEFT',
+    direction: DIRECTIONS.LEFT,
     dots: [[92, 92], [94, 92]]
   },
   2: {
-    direction: 'DOWN',
+    direction: DIRECTIONS.DOWN,
     dots: [[92, 2], [94, 2]]
   },
   3: {
-    direction: 'UP',
+    direction: DIRECTIONS.UP,
     dots: [[2, 92], [4, 92]]
   },
 };
@@ -44,7 +50,7 @@ const defaultState = {
   gamestate: GAMESTATE.PAUSED,
   speed: 100,
   snake: {
-    direction: 'RIGHT',
+    direction: DIRECTIONS.RIGHT,
     id: 0,
     alive: true,
     dots: [
@@ -136,16 +142,16 @@ class App extends Component {
     e = e || window.event;
     switch (e.keyCode) {
       case 38:
-        this.onDirectionChange('UP');
+        this.onDirectionChange(DIRECTIONS.UP);
         break;
       case 40:
-        this.onDirectionChange('DOWN');
+        this.onDirectionChange(DIRECTIONS.DOWN);
         break;
       case 37:
-        this.onDirectionChange('LEFT');
+        this.onDirectionChange(DIRECTIONS.LEFT);
         break;
       case 39:
-        this.onDirectionChange('RIGHT');
+        this.onDirectionChange(DIRECTIONS.RIGHT);
         break;
       case 32:
         this.togglePause();
@@ -176,16 +182,16 @@ class App extends Component {
     let head = dots[dots.length - 1];
 
     switch (snake.direction) {
-      case "RIGHT":
+      case DIRECTIONS.RIGHT:
         head = [head[0] + 2, head[1]];
         break;
-      case "LEFT":
+      case DIRECTIONS.LEFT:
         head = [head[0] - 2, head[1]];
         break;
-      case "DOWN":
+      case DIRECTIONS.DOWN:
         head = [head[0], head[1] + 2];
         break;
-      case "UP":
+      case DIRECTIONS.UP:
         head = [head[0], head[1] - 2];
         break;
     }
