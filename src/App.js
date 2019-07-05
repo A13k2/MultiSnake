@@ -2,14 +2,14 @@ import React, { Component } from 'react';
 import Snake from './Snake';
 import Food from './Food';
 import './App.css';
-
+import firebase from './firebase.js';
 
 const GAMESTATE = {
   PAUSED: 0,
   RUNNING: 1,
   MENU: 2,
   GAMEOVER: 3,
-}
+};
 
 const getRandomCoordinates = () => {
   let min = 1;
@@ -21,16 +21,11 @@ const getRandomCoordinates = () => {
 
 const defaultState = {
   gamestate: GAMESTATE.PAUSED,
-    direction: 'RIGHT',
-    speed: 100,
-    snakeDots: [
-      [0, 0],
-      [2, 0],
-      [2, 2],
-      [2, 4],
-    ],
-    foodDot: getRandomCoordinates(),
-}
+  direction: 'RIGHT',
+  speed: 100,
+  snakeDots: [[0, 0], [2, 0], [2, 2], [2, 4]],
+  foodDot: getRandomCoordinates(),
+};
 
 class App extends Component {
   state = defaultState;
@@ -40,24 +35,30 @@ class App extends Component {
     document.onkeydown = this.onKeyDown;
   }
 
-  onKeyDown = (e) => {
+  onKeyDown = e => {
     e = e || window.event;
+    var direction = null;
     switch (e.keyCode) {
       case 38:
-        this.setState({ direction: 'UP' });
+        direction = 'UP';
         break;
       case 40:
-        this.setState({ direction: 'DOWN' });
+        direction = 'DOWN';
         break;
       case 37:
-        this.setState({ direction: 'LEFT' });
+        direction = 'LEFT';
         break;
       case 39:
-        this.setState({ direction: 'RIGHT' });
+        direction = 'RIGHT';
         break;
       case 32:
         this.togglePause();
         break;
+    }
+    if (direction != null) {
+      this.setState({ direction });
+      const directionRef = firebase.database().ref('direction');
+      directionRef.set(direction);
     }
   };
 
@@ -67,10 +68,10 @@ class App extends Component {
 
   togglePause = () => {
     let { gamestate } = this.state;
-    if (gamestate === GAMESTATE.RUNNING)  {
+    if (gamestate === GAMESTATE.RUNNING) {
       gamestate = GAMESTATE.PAUSED;
     } else gamestate = GAMESTATE.RUNNING;
-    this.setState({gamestate});
+    this.setState({ gamestate });
   };
 
   moveSnake = () => {
@@ -82,16 +83,16 @@ class App extends Component {
     let head = dots[dots.length - 1];
 
     switch (this.state.direction) {
-      case "RIGHT":
+      case 'RIGHT':
         head = [head[0] + 2, head[1]];
         break;
-      case "LEFT":
+      case 'LEFT':
         head = [head[0] - 2, head[1]];
         break;
-      case "DOWN":
+      case 'DOWN':
         head = [head[0], head[1] + 2];
         break;
-      case "UP":
+      case 'UP':
         head = [head[0], head[1] - 2];
         break;
     }
@@ -112,12 +113,12 @@ class App extends Component {
     this.setState({
       snakeDots: dots,
       foodDot: foodDot,
-    })
+    });
   };
 
-  checkGay = (dots) => {
+  checkGay = dots => {
     for (let i = 0; i < dots.length; i++) {
-      for (let j = i+1; j < dots.length; j++) {
+      for (let j = i + 1; j < dots.length; j++) {
         if (dots[i][0] === dots[j][0] && dots[i][1] === dots[j][1]) {
           console.log('gay');
           return true;
@@ -133,7 +134,7 @@ class App extends Component {
     }
   };
 
-  checkBorders = (head) => {
+  checkBorders = head => {
     if (head[0] === 0 || head[0] === 100 || head[1] === 0 || head[1] === 100) {
       return true;
     }
@@ -145,7 +146,7 @@ class App extends Component {
         <Snake snakeDots={this.state.snakeDots} />
         <Food dot={this.state.foodDot} />
       </div>
-    )
+    );
   }
 }
 
