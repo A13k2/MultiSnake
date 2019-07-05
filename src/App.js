@@ -13,6 +13,25 @@ const GAMESTATE = {
   GAMEOVER: 3,
 };
 
+const STARTING_POSITIONS = {
+  0: {
+    direction: 'RIGHT',
+    dots: [[2, 2], [4, 2]]
+  },
+  1: {
+    direction: 'LEFT',
+    dots: [[92, 92], [94, 92]]
+  },
+  2: {
+    direction: 'DOWN',
+    dots: [[92, 2], [94, 2]]
+  },
+  3: {
+    direction: 'UP',
+    dots: [[2, 92], [4, 92]]
+  },
+};
+
 const getRandomCoordinates = () => {
   let min = 1;
   let max = 98;
@@ -69,6 +88,8 @@ class App extends Component {
       db.ref(`snakeStates/${id}`).set({
         snake: {
           ...snake,
+          dots: STARTING_POSITIONS[id].dots,
+          direction: STARTING_POSITIONS[id].direction,
           id
         },
       });
@@ -76,6 +97,8 @@ class App extends Component {
       this.setState({
         snake: {
           ...snake,
+          dots: STARTING_POSITIONS[id].dots,
+          direction: STARTING_POSITIONS[id].direction,
           id
         },
       });
@@ -150,7 +173,6 @@ class App extends Component {
     if (!alive) return;
 
     let dots = [...snake.dots];
-    console.log(dots);
     let head = dots[dots.length - 1];
 
     switch (snake.direction) {
@@ -222,14 +244,16 @@ class App extends Component {
   };
 
   checkOthersGay = (head) => {
-    const { otherSnakes } = this.state;
+    const { otherSnakes, snake: { id } } = this.state;
     let gay = false;
     otherSnakes.forEach((other) => {
-      other.snake.dots.forEach((dot) => {
-        if (head[0] === dot[0] && head[1] === dot[1]) {
-          gay = true;
-        }
-      })
+      if (other.snake.id != id) {
+        other.snake.dots.forEach((dot) => {
+          if (head[0] === dot[0] && head[1] === dot[1]) {
+            gay = true;
+          }
+        })
+      }
     });
     return gay;
   };
