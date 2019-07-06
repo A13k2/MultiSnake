@@ -160,10 +160,9 @@ class App extends Component {
       if (countAlive === 1) {
         console.log(Math.max(...scores));
         if (Math.max(...scores) === scores[aliveSnake.id]) {
-          console.log('bp1');
           gameOver = true;
         }
-      }
+      } else if (countAlive === 0) gameOver = true;
     }
     if (gameOver) {
       this.setState({ gamestate: GAMESTATE.GAMEOVER });
