@@ -118,6 +118,7 @@ class App extends Component {
     });
     db.ref('snakeStates').on('value', snapshot => {
       let snakeData = snapshot.val();
+      this.checkGameOver(snakeData);
       this.setState({ otherSnakes: snakeData });
     });
     db.ref('gamestate').on('value', snapshot => {
@@ -132,6 +133,42 @@ class App extends Component {
         db.ref('foodDot').set(foodDot);
       }
     });
+  };
+
+  getScore = snake => {
+    return snake.dots.length;
+  };
+
+  checkGameOver = snakeData => {
+    const { snake } = this.state;
+    if (!snake || !snakeData) return; // Check if Player is initalized and has a snake
+    let gameOver = false;
+    if (snakeData.length === 1 && !snake.alive) {
+      gameOver = true;
+    }
+    if (snakeData.length > 1) {
+      let countAlive = 0;
+      let aliveSnake = null;
+      let scores = [];
+      snakeData.forEach(snakeIndex => {
+        scores.push(snakeIndex.snake.dots.length);
+        if (snakeIndex.snake.alive) {
+          countAlive += 1;
+          aliveSnake = snakeIndex.snake;
+        }
+      });
+      if (countAlive === 1) {
+        console.log(Math.max(...scores));
+        if (Math.max(...scores) === scores[aliveSnake.id]) {
+          console.log('bp1');
+          gameOver = true;
+        }
+      }
+    }
+    if (gameOver) {
+      this.setState({ gamestate: GAMESTATE.GAMEOVER });
+      db.ref('gamestate').set(GAMESTATE.GAMEOVER);
+    }
   };
 
 
@@ -187,6 +224,7 @@ class App extends Component {
     let { alive } = snake;
 
     if (gamestate === GAMESTATE.PAUSED) return;
+    if (gamestate === GAMESTATE.GAMEOVER) return;
     if (!alive) return;
 
     let dots = [...snake.dots];
@@ -308,6 +346,19 @@ class App extends Component {
     )
   };
 
+  resetFirebase = () => {
+    db.ref('snakeStates').remove()
+      .then(function () {
+        console.log("Remove succeeded.")
+      })
+      .catch(function (error) {
+        console.log("Remove failed: " + error.message)
+      });
+    db.ref('gamestate').set(GAMESTATE.PAUSED);
+    this.setState({ snake: null });
+    this.initPlayer();
+  };
+
   render() {
     const { snake, otherSnakes } = this.state;
     let endgame = this.display();
@@ -315,13 +366,13 @@ class App extends Component {
     let otherSnakesDisplay;
     if (snake) {
       snakeDisplay = (
-        <Snake key={this.state.snake.id} snakeDots={this.state.snake.dots} color={snake.color}/>);
+        <Snake key={this.state.snake.id} snakeDots={this.state.snake.dots} color={snake.color} />);
       if (otherSnakes) {
         otherSnakesDisplay = otherSnakes.map((OneOfTheOtherSnakes) => {
-          const currentSnake = OneOfTheOtherSnakes.snake;
+            const currentSnake = OneOfTheOtherSnakes.snake;
             if (OneOfTheOtherSnakes.snake.id !== snake.id) {
               return (
-                <Snake key={currentSnake.id} snakeDots={currentSnake.dots} color={currentSnake.color}/>
+                <Snake key={currentSnake.id} snakeDots={currentSnake.dots} color={currentSnake.color} />
               )
             }
           }
@@ -329,12 +380,17 @@ class App extends Component {
       }
     }
     return (
-      <div className="game-area">
-        {endgame}
-        {snakeDisplay}
-        {otherSnakesDisplay}
-        <Food dot={this.state.foodDot} />
-        <canvas ref='canvas' />
+      <div>
+        <div className="game-area">
+          {endgame}
+          {snakeDisplay}
+          {otherSnakesDisplay}
+          <Food dot={this.state.foodDot} />
+          <canvas ref='canvas' />
+        </div>
+        <button onClick={this.resetFirebase}>
+          Reset
+        </button>
       </div>
     )
   }

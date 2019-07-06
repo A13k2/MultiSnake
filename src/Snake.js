@@ -3,7 +3,6 @@ import React, { Component } from 'react';
 export default class Snake extends Component {
   render()
   {
-    console.log(this.props.color);
     return (
       <div>
         {this.props.snakeDots.map((dot, i) => {
