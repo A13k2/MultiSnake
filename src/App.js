@@ -253,6 +253,7 @@ class App extends Component {
         break;
     }
     if (this.checkFood(head, foodDot)) {
+      // TODO: Check if new food coordinate is inside of a snake...
       foodDot = getRandomCoordinates();
       this.setState({
         foodDot,
@@ -262,6 +263,7 @@ class App extends Component {
       dots.shift();
     }
     dots.push(head);
+    // TODO: Refactor like next 30 lines.... Looks bad
     if (this.checkSelfGay(dots) || this.checkBorders(head) || this.checkOthersGay(head)) {
       alive = false;
       this.setState({
