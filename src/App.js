@@ -4,7 +4,6 @@ import Snake from './Snake';
 import Food from './Food';
 import './App.css';
 import firebase from './firebase.js';
-import Game from "./Game";
 
 const KEY = {
   UP: 38,
@@ -297,10 +296,10 @@ class App extends Component {
       case GAMESTATE.RUNNING:
         return;
       case GAMESTATE.GAMEOVER:
-        message = (<p>Game Over.</p>)
+        message = (<p>Game Over.</p>);
         break;
       case GAMESTATE.PAUSED:
-        message = (<p>Game Paused</p>)
+        message = (<p>Game Paused</p>);
         break;
       default:
         return;
