@@ -5,6 +5,14 @@ import Food from './Food';
 import './App.css';
 import firebase from './firebase.js';
 
+const KEY = {
+  UP: 38,
+  DOWN: 40,
+  LEFT: 37,
+  RIGHT: 39,
+  SPACE: 32,
+};
+
 const DIRECTIONS = {
   LEFT: 0,
   RIGHT: 1,
@@ -21,18 +29,26 @@ const GAMESTATE = {
 
 const STARTING_POSITIONS = {
   0: {
+    alive: true,
+    color: 'black',
     direction: DIRECTIONS.RIGHT,
     dots: [[2, 2], [4, 2]]
   },
   1: {
+    alive: true,
+    color: 'blue',
     direction: DIRECTIONS.LEFT,
     dots: [[92, 92], [94, 92]]
   },
   2: {
+    alive: true,
+    color: 'green',
     direction: DIRECTIONS.DOWN,
     dots: [[92, 2], [94, 2]]
   },
   3: {
+    alive: true,
+    color: 'purple',
     direction: DIRECTIONS.UP,
     dots: [[2, 92], [4, 92]]
   },
@@ -49,29 +65,25 @@ const getRandomCoordinates = () => {
 const defaultState = {
   gamestate: GAMESTATE.PAUSED,
   speed: 100,
-  snake: {
-    direction: DIRECTIONS.RIGHT,
-    id: 0,
-    alive: true,
-    dots: [
-      [2, 2],
-      [4, 2]
-    ]
-  },
+  snake: null,
   otherSnakes: [],
   foodDot: [],
-
 };
 
 const db = firebase.database();
 
 class App extends Component {
-  state = defaultState;
+  state = {
+    ...defaultState,
+    context: null
+  };
 
   componentDidMount() {
     setInterval(this.moveSnake, this.state.speed);
     document.onkeydown = this.onKeyDown;
     this.initDb();
+    const context = this.refs.canvas.getContext('2d');
+    this.setState({ context: context });
   }
 
   initDb = () => {
@@ -87,24 +99,19 @@ class App extends Component {
   };
 
   initPlayer = () => {
-    const { snake } = this.state;
     var id = 0;
     db.ref('snakeStates').once('value', snapshot => {
       id = snapshot.val() ? snapshot.val().length : 0;
       db.ref(`snakeStates/${id}`).set({
         snake: {
-          ...snake,
-          dots: STARTING_POSITIONS[id].dots,
-          direction: STARTING_POSITIONS[id].direction,
+          ...STARTING_POSITIONS[id],
           id
         },
       });
       console.log('playerId: ', id);
       this.setState({
         snake: {
-          ...snake,
-          dots: STARTING_POSITIONS[id].dots,
-          direction: STARTING_POSITIONS[id].direction,
+          ...STARTING_POSITIONS[id],
           id
         },
       });
@@ -141,19 +148,19 @@ class App extends Component {
   onKeyDown = e => {
     e = e || window.event;
     switch (e.keyCode) {
-      case 38:
+      case KEY.UP:
         this.onDirectionChange(DIRECTIONS.UP);
         break;
-      case 40:
+      case KEY.DOWN:
         this.onDirectionChange(DIRECTIONS.DOWN);
         break;
-      case 37:
+      case KEY.LEFT:
         this.onDirectionChange(DIRECTIONS.LEFT);
         break;
-      case 39:
+      case KEY.RIGHT:
         this.onDirectionChange(DIRECTIONS.RIGHT);
         break;
-      case 32:
+      case KEY.SPACE:
         this.togglePause();
         break;
     }
@@ -173,6 +180,10 @@ class App extends Component {
 
   moveSnake = () => {
     let { foodDot, gamestate, snake } = this.state;
+    if (snake === null) {
+      console.log('No Snake.');
+      return;
+    }
     let { alive } = snake;
 
     if (gamestate === GAMESTATE.PAUSED) return;
@@ -205,7 +216,6 @@ class App extends Component {
       dots.shift();
     }
     dots.push(head);
-
     if (this.checkSelfGay(dots) || this.checkBorders(head) || this.checkOthersGay(head)) {
       alive = false;
       this.setState({
@@ -241,7 +251,6 @@ class App extends Component {
     for (let i = 0; i < dots.length; i++) {
       for (let j = i + 1; j < dots.length; j++) {
         if (dots[i][0] === dots[j][0] && dots[i][1] === dots[j][1]) {
-          console.log('gay');
           return true;
         }
       }
@@ -276,21 +285,56 @@ class App extends Component {
     }
   };
 
-  render() {
+  display = () => {
+    const { gamestate } = this.state;
+    let message;
+    switch (gamestate) {
+      case GAMESTATE.RUNNING:
+        return;
+      case GAMESTATE.GAMEOVER:
+        message = (<p>Game Over.</p>);
+        break;
+      case GAMESTATE.PAUSED:
+        message = (<p>Game Paused</p>);
+        break;
+      default:
+        return;
+    }
     return (
-      <div className="game-area">
-        <Snake key={this.state.snake.id} snakeDots={this.state.snake.dots} />
-        {
-          this.state.otherSnakes.map((snake) => {
-            console.log(snake);
-            if (snake.snake.id !== this.state.snake.id) {
+      <div className="endgame">
+        {message}
+        <p>Press Space to Start again.</p>
+      </div>
+    )
+  };
+
+  render() {
+    const { snake, otherSnakes } = this.state;
+    let endgame = this.display();
+    let snakeDisplay;
+    let otherSnakesDisplay;
+    if (snake) {
+      snakeDisplay = (
+        <Snake key={this.state.snake.id} snakeDots={this.state.snake.dots} color={snake.color}/>);
+      if (otherSnakes) {
+        otherSnakesDisplay = otherSnakes.map((OneOfTheOtherSnakes) => {
+          const currentSnake = OneOfTheOtherSnakes.snake;
+            if (OneOfTheOtherSnakes.snake.id !== snake.id) {
               return (
-                <Snake key={snake.snake.id} snakeDots={snake.snake.dots} />
+                <Snake key={currentSnake.id} snakeDots={currentSnake.dots} color={currentSnake.color}/>
               )
             }
-          })
-        }
+          }
+        )
+      }
+    }
+    return (
+      <div className="game-area">
+        {endgame}
+        {snakeDisplay}
+        {otherSnakesDisplay}
         <Food dot={this.state.foodDot} />
+        <canvas ref='canvas' />
       </div>
     )
   }
