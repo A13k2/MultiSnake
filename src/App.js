@@ -4,6 +4,7 @@ import Snake from './Snake';
 import Food from './Food';
 import './App.css';
 import firebase from './firebase.js';
+import Game from "./Game";
 
 const KEY = {
   UP: 38,
@@ -68,18 +69,23 @@ const defaultState = {
   },
   otherSnakes: [],
   foodDot: [],
-
 };
 
 const db = firebase.database();
 
 class App extends Component {
-  state = defaultState;
+  state = {
+    ...defaultState,
+    context: null
+  };
 
   componentDidMount() {
     setInterval(this.moveSnake, this.state.speed);
     document.onkeydown = this.onKeyDown;
     this.initDb();
+    console.log(this.refs.canvas);
+    const context = this.refs.canvas.getContext('2d');
+    this.setState({ context: context });
   }
 
   initDb = () => {
@@ -284,9 +290,34 @@ class App extends Component {
     }
   };
 
+  display = () => {
+    const { gamestate } = this.state;
+    let message;
+    switch (gamestate) {
+      case GAMESTATE.RUNNING:
+        return;
+      case GAMESTATE.GAMEOVER:
+        message = (<p>Game Over.</p>)
+        break;
+      case GAMESTATE.PAUSED:
+        message = (<p>Game Paused</p>)
+        break;
+      default:
+        return;
+    }
+    return (
+      <div className="endgame">
+        {message}
+        <p>Press Space to Start again.</p>
+      </div>
+    )
+  };
+
   render() {
+    let endgame = this.display();
     return (
       <div className="game-area">
+        {endgame}
         <Snake key={this.state.snake.id} snakeDots={this.state.snake.dots} />
         {
           this.state.otherSnakes.map((snake) => {
@@ -299,6 +330,7 @@ class App extends Component {
           })
         }
         <Food dot={this.state.foodDot} />
+        <canvas ref='canvas' />
       </div>
     )
   }
