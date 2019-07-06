@@ -30,7 +30,7 @@ const GAMESTATE = {
 const STARTING_POSITIONS = {
   0: {
     alive: true,
-    color: 'black',
+    color: 'green',
     direction: DIRECTIONS.RIGHT,
     dots: [[2, 2], [4, 2]]
   },
@@ -183,18 +183,27 @@ class App extends Component {
 
   onKeyDown = e => {
     e = e || window.event;
+    const { snake: { direction }} = this.state;
     switch (e.keyCode) {
       case KEY.UP:
-        this.onDirectionChange(DIRECTIONS.UP);
+        if (direction !== DIRECTIONS.DOWN) {
+          this.onDirectionChange(DIRECTIONS.UP);
+        }
         break;
       case KEY.DOWN:
-        this.onDirectionChange(DIRECTIONS.DOWN);
+        if (direction !== DIRECTIONS.UP) {
+          this.onDirectionChange(DIRECTIONS.DOWN);
+        }
         break;
       case KEY.LEFT:
-        this.onDirectionChange(DIRECTIONS.LEFT);
+        if (direction !== DIRECTIONS.RIGHT) {
+          this.onDirectionChange(DIRECTIONS.LEFT);
+        }
         break;
       case KEY.RIGHT:
-        this.onDirectionChange(DIRECTIONS.RIGHT);
+        if (direction !== DIRECTIONS.LEFT) {
+          this.onDirectionChange(DIRECTIONS.RIGHT);
+        }
         break;
       case KEY.SPACE:
         this.togglePause();
