@@ -5,6 +5,14 @@ import Food from './Food';
 import './App.css';
 import firebase from './firebase.js';
 
+const KEY = {
+  UP: 38,
+  DOWN: 40,
+  LEFT: 37,
+  RIGHT: 39,
+  SPACE: 32,
+};
+
 const DIRECTIONS = {
   LEFT: 0,
   RIGHT: 1,
@@ -141,19 +149,19 @@ class App extends Component {
   onKeyDown = e => {
     e = e || window.event;
     switch (e.keyCode) {
-      case 38:
+      case KEY.UP:
         this.onDirectionChange(DIRECTIONS.UP);
         break;
-      case 40:
+      case KEY.DOWN:
         this.onDirectionChange(DIRECTIONS.DOWN);
         break;
-      case 37:
+      case KEY.LEFT:
         this.onDirectionChange(DIRECTIONS.LEFT);
         break;
-      case 39:
+      case KEY.RIGHT:
         this.onDirectionChange(DIRECTIONS.RIGHT);
         break;
-      case 32:
+      case KEY.SPACE:
         this.togglePause();
         break;
     }
