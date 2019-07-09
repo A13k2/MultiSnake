@@ -32,25 +32,25 @@ const STARTING_POSITIONS = {
     alive: true,
     color: 'green',
     direction: DIRECTIONS.RIGHT,
-    dots: [[2, 2], [4, 2]]
+    dots: [[2, 2], [4, 2]],
   },
   1: {
     alive: true,
     color: 'blue',
     direction: DIRECTIONS.LEFT,
-    dots: [[92, 92], [94, 92]]
+    dots: [[92, 92], [94, 92]],
   },
   2: {
     alive: true,
     color: 'green',
     direction: DIRECTIONS.DOWN,
-    dots: [[92, 2], [94, 2]]
+    dots: [[92, 2], [94, 2]],
   },
   3: {
     alive: true,
     color: 'purple',
     direction: DIRECTIONS.UP,
-    dots: [[2, 92], [4, 92]]
+    dots: [[2, 92], [4, 92]],
   },
 };
 
@@ -75,7 +75,7 @@ const db = firebase.database();
 class App extends Component {
   state = {
     ...defaultState,
-    context: null
+    context: null,
   };
 
   componentDidMount() {
@@ -105,19 +105,20 @@ class App extends Component {
       db.ref(`snakeStates/${id}`).set({
         snake: {
           ...STARTING_POSITIONS[id],
-          id
+          id,
         },
       });
       console.log('playerId: ', id);
       this.setState({
         snake: {
           ...STARTING_POSITIONS[id],
-          id
+          id,
         },
       });
     });
     db.ref('snakeStates').on('value', snapshot => {
       let snakeData = snapshot.val();
+      console.log('snakeData firebase', snakeData);
       this.checkGameOver(snakeData);
       this.setState({ otherSnakes: snakeData });
     });
@@ -128,7 +129,7 @@ class App extends Component {
       if (snapshot.exists()) {
         this.setState({ foodDot: snapshot.val() });
       } else {
-        let foodDot = getRandomCoordinates()
+        let foodDot = getRandomCoordinates();
         this.setState({ foodDot: foodDot });
         db.ref('foodDot').set(foodDot);
       }
@@ -166,24 +167,28 @@ class App extends Component {
     }
     if (gameOver) {
       this.setState({ gamestate: GAMESTATE.GAMEOVER });
-      db.ref('gamestate').set(GAMESTATE.GAMEOVER);
+      // db.ref('gamestate').set(GAMESTATE.GAMEOVER);
     }
   };
-
 
   onDirectionChange = direction => {
     const { snake } = this.state;
     this.setState({
       snake: {
         ...snake,
-        direction
-      }
+        direction,
+      },
     });
   };
 
   onKeyDown = e => {
     e = e || window.event;
-    const { snake: { direction }} = this.state;
+    if (!this.state.snake) {
+      return;
+    }
+    const {
+      snake: { direction },
+    } = this.state;
     switch (e.keyCode) {
       case KEY.UP:
         if (direction !== DIRECTIONS.DOWN) {
@@ -264,19 +269,23 @@ class App extends Component {
     }
     dots.push(head);
     // TODO: Refactor like next 30 lines.... Looks bad
-    if (this.checkSelfGay(dots) || this.checkBorders(head) || this.checkOthersGay(head)) {
+    if (
+      this.checkSelfGay(dots) ||
+      this.checkBorders(head) ||
+      this.checkOthersGay(head)
+    ) {
       alive = false;
       this.setState({
         snake: {
           ...snake,
           alive,
-        }
+        },
       });
-      db.ref(`snakeStates/${this.state.snake.id}`).set({
+      db.ref(`snakeStates/${snake.id}`).set({
         snake: {
           ...snake,
           alive,
-        }
+        },
       });
       return;
     } else {
@@ -284,18 +293,18 @@ class App extends Component {
         snake: {
           ...snake,
           dots,
-        }
+        },
       });
-      db.ref(`snakeStates/${this.state.snake.id}`).set({
+      db.ref(`snakeStates/${snake.id}`).set({
         snake: {
           ...snake,
           dots,
-        }
+        },
       });
     }
   };
 
-  checkSelfGay = (dots) => {
+  checkSelfGay = dots => {
     for (let i = 0; i < dots.length; i++) {
       for (let j = i + 1; j < dots.length; j++) {
         if (dots[i][0] === dots[j][0] && dots[i][1] === dots[j][1]) {
@@ -306,16 +315,19 @@ class App extends Component {
     return false;
   };
 
-  checkOthersGay = (head) => {
-    const { otherSnakes, snake: { id } } = this.state;
+  checkOthersGay = head => {
+    const {
+      otherSnakes,
+      snake: { id },
+    } = this.state;
     let gay = false;
-    otherSnakes.forEach((other) => {
+    otherSnakes.forEach(other => {
       if (other.snake.id != id) {
-        other.snake.dots.forEach((dot) => {
+        other.snake.dots.forEach(dot => {
           if (head[0] === dot[0] && head[1] === dot[1]) {
             gay = true;
           }
-        })
+        });
       }
     });
     return gay;
@@ -327,8 +339,13 @@ class App extends Component {
     }
   };
 
-  checkBorders = (head) => {
-    if (head[0] === -2 || head[0] === 100 || head[1] === -2 || head[1] === 100) {
+  checkBorders = head => {
+    if (
+      head[0] === -2 ||
+      head[0] === 100 ||
+      head[1] === -2 ||
+      head[1] === 100
+    ) {
       return true;
     }
   };
@@ -340,10 +357,10 @@ class App extends Component {
       case GAMESTATE.RUNNING:
         return;
       case GAMESTATE.GAMEOVER:
-        message = (<p>Game Over.</p>);
+        message = <p>Game Over.</p>;
         break;
       case GAMESTATE.PAUSED:
-        message = (<p>Game Paused</p>);
+        message = <p>Game Paused</p>;
         break;
       default:
         return;
@@ -353,16 +370,17 @@ class App extends Component {
         {message}
         <p>Press Space to Start again.</p>
       </div>
-    )
+    );
   };
 
   resetFirebase = () => {
-    db.ref('snakeStates').remove()
-      .then(function () {
-        console.log("Remove succeeded.")
+    db.ref('snakeStates')
+      .remove()
+      .then(function() {
+        console.log('Remove succeeded.');
       })
-      .catch(function (error) {
-        console.log("Remove failed: " + error.message)
+      .catch(function(error) {
+        console.log('Remove failed: ' + error.message);
       });
     db.ref('gamestate').set(GAMESTATE.PAUSED);
     this.setState({ snake: null });
@@ -370,39 +388,33 @@ class App extends Component {
   };
 
   render() {
-    const { snake, otherSnakes } = this.state;
-    let endgame = this.display();
-    let snakeDisplay;
-    let otherSnakesDisplay;
-    if (snake) {
-      snakeDisplay = (
-        <Snake key={this.state.snake.id} snakeDots={this.state.snake.dots} color={snake.color} />);
-      if (otherSnakes) {
-        otherSnakesDisplay = otherSnakes.map((OneOfTheOtherSnakes) => {
-            const currentSnake = OneOfTheOtherSnakes.snake;
-            if (OneOfTheOtherSnakes.snake.id !== snake.id) {
-              return (
-                <Snake key={currentSnake.id} snakeDots={currentSnake.dots} color={currentSnake.color} />
-              )
-            }
-          }
-        )
-      }
-    }
+    const { snake, otherSnakes, foodDot } = this.state;
+    console.log('snakes', snake);
+    console.log('otherSnakes', otherSnakes);
     return (
       <div>
         <div className="game-area">
-          {endgame}
-          {snakeDisplay}
-          {otherSnakesDisplay}
-          <Food dot={this.state.foodDot} />
-          <canvas ref='canvas' />
+          {this.display()}
+          {snake ? (
+            <Snake key={snake.id} snakeDots={snake.dots} color={snake.color} />
+          ) : null}
+          {snake && otherSnakes
+            ? otherSnakes
+                .filter(other => other.id !== snake.id)
+                .map(({ snake }) => (
+                  <Snake
+                    key={snake.id}
+                    snakeDots={snake.dots}
+                    color={snake.color}
+                  />
+                ))
+            : null}
+          <Food dot={foodDot} />
+          <canvas ref="canvas" />
         </div>
-        <button onClick={this.resetFirebase}>
-          Reset
-        </button>
+        <button onClick={this.resetFirebase}>Reset</button>
       </div>
-    )
+    );
   }
 }
 

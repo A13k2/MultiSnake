@@ -1,8 +1,7 @@
 import React, { Component } from 'react';
 
 export default class Snake extends Component {
-  render()
-  {
+  render() {
     return (
       <div>
         {this.props.snakeDots.map((dot, i) => {
@@ -11,12 +10,9 @@ export default class Snake extends Component {
             top: `${dot[1]}%`,
             backgroundColor: this.props.color,
           };
-          return (
-            <div className="snake-dot" key={i} style={style}></div>
-          )
+          return <div className="snake-dot" key={i} style={style}></div>;
         })}
       </div>
-
-    )
+    );
   }
 }
